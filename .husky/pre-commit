@@ -1,1 +1,1 @@
-npx lint-staged --config .lintstagedrc.mjs
+yarn lint-staged --config .lintstagedrc.mjs

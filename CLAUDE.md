@@ -19,8 +19,21 @@ Copy `.env.example` → `.env` and fill in:
 
 ### 2. Install & Run
 ```bash
-npm run install:all   # installs root + server + client deps
-npm run dev           # starts both server (5000) + client (5173)
+yarn install      # installs all workspaces (root + client + server)
+yarn dev          # starts both server (5000) + client (5173)
+```
+
+### Package manager
+This project uses **Yarn Classic (v1)** with workspaces. Never use `npm` — always use `yarn`.
+
+```bash
+# Run scripts in a specific workspace
+yarn workspace client <script>
+yarn workspace server <script>
+
+# Add a dependency to a workspace
+yarn workspace client add <package>
+yarn workspace server add --dev <package>
 ```
 
 ## Architecture
