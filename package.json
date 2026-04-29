@@ -1,12 +1,19 @@
 {
   "name": "fit-calory",
   "private": true,
-  "workspaces": ["client", "server"],
+  "workspaces": [
+    "client",
+    "server"
+  ],
   "scripts": {
     "dev": "concurrently \"yarn workspace server dev\" \"yarn workspace client dev\"",
     "lint": "yarn workspace client lint && yarn workspace server lint",
     "lint:fix": "yarn workspace client lint:fix && yarn workspace server lint:fix",
     "prepare": "husky"
+  },
+  "resolutions": {
+    "**/@types/express": "4.17.21",
+    "@types/multer": "1.4.7"
   },
   "devDependencies": {
     "@commitlint/cli": "^20.5.2",
