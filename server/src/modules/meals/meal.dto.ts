@@ -14,7 +14,7 @@ export const createMealSchema = z.object({
   date: z.string().datetime().or(z.string().date()),
   mealType: z.enum(["breakfast", "lunch", "dinner", "snack"]),
   note: z.string().max(500).optional(),
-  foods: z.array(foodItemSchema).min(1),
+  foods: z.array(foodItemSchema).default([]),
   photo: z.string().optional(),
   aiAnalysis: z.string().optional(),
   isManual: z.boolean().default(false),
