@@ -13,7 +13,7 @@ interface FoodItem {
   fat: number;
 }
 
-interface AiAnalysisResult {
+export interface AiAnalysisResult {
   foods: FoodItem[];
   totalCalories: number;
   totalProtein: number;
@@ -63,6 +63,50 @@ Muhim qoidalar:
 }
 
 Makrolar gramda, kaloriya kcal da bo'lsin. Iloji boricha aniq bo'l.`;
+}
+
+function buildTextPrompt(note: string): string {
+  return `Sen professional dietolog sun'iy intellektsiyasan. Foydalanuvchi quyidagi taomni yeganligi haqida yozdi:
+
+"${note}"
+
+Ushbu matn asosida taomlarni tahlil qil va taxminiy kaloriya hamda makrolarni hisobla.
+
+Muhim qoidalar:
+- Faqat matnda aytilgan mahsulotlarni yoz
+- Miqdor ko'rsatilmagan bo'lsa, o'rtacha porsiya hajmini qabul qil
+- Barcha mahsulot nomlarini O'ZBEK tilida yoz
+- Faqat quyidagi JSON formatida javob qaytar, boshqa hech narsa yozma:
+
+{
+  "foods": [
+    {
+      "name": "mahsulot nomi o'zbekcha",
+      "quantity": "taxminiy miqdor",
+      "calories": 0,
+      "protein": 0,
+      "carbs": 0,
+      "fat": 0
+    }
+  ],
+  "totalCalories": 0,
+  "totalProtein": 0,
+  "totalCarbs": 0,
+  "totalFat": 0,
+  "confidence": "medium",
+  "notes": "matn asosida taxminiy hisob"
+}
+
+Makrolar gramda, kaloriya kcal da bo'lsin.`;
+}
+
+export async function analyzeFoodText(note: string): Promise<AiAnalysisResult> {
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+  const result = await model.generateContent(buildTextPrompt(note));
+  const text = result.response.text().trim();
+  const jsonMatch = text.match(/\{[\s\S]*\}/);
+  if (!jsonMatch) throw new Error("AI noto'g'ri javob qaytardi");
+  return JSON.parse(jsonMatch[0]);
 }
 
 export async function analyzeFoodImages(

@@ -70,11 +70,6 @@ export function LogMeal() {
   async function handleAnalyze() {
     if (!canSubmit) return;
 
-    if (!hasFiles) {
-      saveMeal.mutate();
-      return;
-    }
-
     setPhase("analyzing");
     try {
       const result = await analyzeFiles(files, note);
@@ -155,7 +150,7 @@ export function LogMeal() {
               disabled={!canSubmit}
               className="w-full rounded-xl bg-emerald-500 py-4 text-sm font-semibold text-white hover:bg-emerald-400 disabled:opacity-40 transition-colors shadow-lg shadow-emerald-500/20"
             >
-              {hasFiles ? "Tahlil qilish" : "Saqlash"}
+              Tahlil qilish
             </button>
           )}
 
