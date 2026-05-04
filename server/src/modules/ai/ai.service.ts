@@ -33,7 +33,7 @@ const MIME_TYPES: Record<string, string> = {
 
 function buildPrompt(note?: string): string {
   const noteSection = note?.trim()
-    ? `\nFoydalanuvchi izohi (bunga asoslanib tahlil qil): "${note.trim()}"`
+    ? `\nFoydalanuvchi izohi: "${note.trim()}"\nAgar izohda miqdor ko'rsatilgan bo'lsa (masalan "20g", "1 piyola"), rasmdan ko'ra IZOHNI ustun qo'y va shu miqdorni ishlat.`
     : "";
 
   return `Sen professional dietolog sun'iy intellektsiyasan. Yuborilgan rasm(lar)dagi taomlarni tahlil qil.${noteSection}
