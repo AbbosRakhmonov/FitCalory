@@ -7,7 +7,7 @@ module.exports = {
       exec_mode: "fork",
       env_production: {
         NODE_ENV: "production",
-        PORT: 5000,
+        PORT: 5005,
       },
       max_memory_restart: "500M",
       error_file: "./logs/pm2-error.log",
