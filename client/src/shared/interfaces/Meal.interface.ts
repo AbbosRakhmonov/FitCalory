@@ -49,4 +49,5 @@ export interface AiAnalysisInterface {
   totalFat: number;
   confidence: "high" | "medium" | "low";
   notes: string;
+  photo?: string;
 }

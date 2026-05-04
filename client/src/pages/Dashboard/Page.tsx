@@ -26,6 +26,13 @@ export function Dashboard() {
   const consumed = stats?.totalCalories || 0;
   const remaining = Math.max(goal - consumed, 0);
 
+  const weight = user.data?.weight;
+  const proteinGoal = weight ? Math.round(weight * 2) : null;
+  const fatGoal = Math.round((goal * 0.25) / 9);
+  const carbsGoal = proteinGoal
+    ? Math.round((goal - proteinGoal * 4 - fatGoal * 9) / 4)
+    : Math.round((goal * 0.5) / 4);
+
   const deleteMeal = useMutation({
     mutationFn: (id: string) => request.delete(`/meals/${id}`),
     onSuccess: () => {
@@ -69,9 +76,27 @@ export function Dashboard() {
       </div>
 
       <div className="grid grid-cols-3 gap-3">
-        <NutritionBadge label="Oqsil" value={stats?.totalProtein || 0} color="bg-blue-400" />
-        <NutritionBadge label="Uglevodlar" value={stats?.totalCarbs || 0} color="bg-orange-400" />
-        <NutritionBadge label="Yog'" value={stats?.totalFat || 0} color="bg-yellow-400" />
+        <NutritionBadge
+          label="Oqsil"
+          value={stats?.totalProtein || 0}
+          max={proteinGoal ?? undefined}
+          color="bg-blue-400"
+          barColor="bg-blue-400"
+        />
+        <NutritionBadge
+          label="Uglevodlar"
+          value={stats?.totalCarbs || 0}
+          max={carbsGoal}
+          color="bg-orange-400"
+          barColor="bg-orange-400"
+        />
+        <NutritionBadge
+          label="Yog'"
+          value={stats?.totalFat || 0}
+          max={fatGoal}
+          color="bg-yellow-400"
+          barColor="bg-yellow-400"
+        />
       </div>
 
       <WaterTracker waterLog={waterLog} goal={waterGoal} />

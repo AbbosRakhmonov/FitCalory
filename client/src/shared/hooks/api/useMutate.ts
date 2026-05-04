@@ -4,7 +4,7 @@ import { useApi } from "./useApi";
 interface Props<TData, TVariables> {
   url: (string | number)[];
   method?: "post" | "put" | "patch";
-  invalidateKeys?: unknown[][];
+  invalidateKeys?: readonly (readonly unknown[])[];
   options?: Omit<UseMutationOptions<TData, Error, TVariables>, "mutationFn">;
 }
 
@@ -17,12 +17,14 @@ export function useMutate<TData = unknown, TVariables = unknown>({
   const api = useApi(url);
   const queryClient = useQueryClient();
 
+  const { onSuccess: userOnSuccess, ...restOptions } = options ?? {};
+
   return useMutation<TData, Error, TVariables>({
     mutationFn: (variables) => api.mutate<TData>(variables, method),
     onSuccess: (...args) => {
       invalidateKeys.forEach((key) => queryClient.invalidateQueries({ queryKey: key }));
-      options?.onSuccess?.(...args);
+      userOnSuccess?.(...args);
     },
-    ...options,
+    ...restOptions,
   });
 }

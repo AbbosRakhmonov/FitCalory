@@ -7,7 +7,20 @@ export async function getProfile(userId: string) {
   return user;
 }
 
+const DIET_MODE_OFFSETS = { cut: -500, maintain: 0, bulk: 300 };
+
 export async function updateProfile(userId: string, dto: UpdateProfileDto) {
+  const current = await User.findById(userId);
+  if (!current) throw new Error("User not found");
+
+  const merged = { ...current.toObject(), ...dto };
+  const { height, weight, age, gender, activityLevel, dietMode } = merged;
+
+  if (height && weight && age && gender && activityLevel && !dto.dailyCalorieGoal) {
+    const tdee = calculateTDEE(weight, height, age, gender, activityLevel);
+    dto = { ...dto, dailyCalorieGoal: tdee + DIET_MODE_OFFSETS[dietMode ?? "maintain"] };
+  }
+
   const user = await User.findByIdAndUpdate(userId, dto, { new: true, runValidators: true }).select(
     "-refreshToken -password -googleId"
   );

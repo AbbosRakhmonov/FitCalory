@@ -1,7 +1,8 @@
-import Anthropic from "@anthropic-ai/sdk";
+import { GoogleGenerativeAI } from "@google/generative-ai";
 import fs from "fs";
+import { env } from "../../config/env";
 
-const client = new Anthropic();
+const genAI = new GoogleGenerativeAI(env.GEMINI_API_KEY);
 
 interface FoodItem {
   name: string;
@@ -22,12 +23,31 @@ interface AiAnalysisResult {
   notes: string;
 }
 
-const PROMPT = `You are a professional nutritionist AI. Analyze this food image and return ONLY valid JSON with no markdown or extra text:
+const MIME_TYPES: Record<string, string> = {
+  jpg: "image/jpeg",
+  jpeg: "image/jpeg",
+  png: "image/png",
+  webp: "image/webp",
+  heic: "image/jpeg",
+};
+
+function buildPrompt(note?: string): string {
+  const noteSection = note?.trim()
+    ? `\nFoydalanuvchi izohi (bunga asoslanib tahlil qil): "${note.trim()}"`
+    : "";
+
+  return `Sen professional dietolog sun'iy intellektsiyasan. Yuborilgan rasm(lar)dagi taomlarni tahlil qil.${noteSection}
+
+Muhim qoidalar:
+- Agar bir nechta rasm bo'lsa, ular bir xil taomning turli rakurslari yoki bir xonaning turli ovqatlari bo'lishi mumkin — bir xil mahsulotni IKKI MARTA yozma
+- Barcha mahsulot nomlarini O'ZBEK tilida yoz
+- Faqat quyidagi JSON formatida javob qaytar, boshqa hech narsa yozma:
+
 {
   "foods": [
     {
-      "name": "food name in English",
-      "quantity": "estimated portion (e.g. '200g', '1 cup', '1 piece')",
+      "name": "mahsulot nomi o'zbekcha",
+      "quantity": "taxminiy miqdor (masalan: '200g', '1 piyola', '1 bo'lak')",
       "calories": 0,
       "protein": 0,
       "carbs": 0,
@@ -39,43 +59,29 @@ const PROMPT = `You are a professional nutritionist AI. Analyze this food image 
   "totalCarbs": 0,
   "totalFat": 0,
   "confidence": "high",
-  "notes": "brief analysis notes"
+  "notes": "qisqacha tahlil izohi o'zbekcha"
 }
-All numeric values must be in grams for macros and kcal for calories. Be as accurate as possible.`;
 
-export async function analyzeFoodImage(imagePath: string): Promise<AiAnalysisResult> {
-  const imageData = fs.readFileSync(imagePath);
-  const base64 = imageData.toString("base64");
-  const ext = imagePath.split(".").pop()?.toLowerCase();
-  const mimeTypeMap: Record<string, string> = {
-    jpg: "image/jpeg",
-    jpeg: "image/jpeg",
-    png: "image/png",
-    webp: "image/webp",
-    heic: "image/jpeg",
-  };
-  const mediaType = (mimeTypeMap[ext || "jpg"] || "image/jpeg") as
-    | "image/jpeg"
-    | "image/png"
-    | "image/webp"
-    | "image/gif";
+Makrolar gramda, kaloriya kcal da bo'lsin. Iloji boricha aniq bo'l.`;
+}
 
-  const response = await client.messages.create({
-    model: "claude-opus-4-5",
-    max_tokens: 1024,
-    messages: [
-      {
-        role: "user",
-        content: [
-          { type: "image", source: { type: "base64", media_type: mediaType, data: base64 } },
-          { type: "text", text: PROMPT },
-        ],
-      },
-    ],
+export async function analyzeFoodImages(
+  imagePaths: string[],
+  note?: string
+): Promise<AiAnalysisResult> {
+  const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
+
+  const imageParts = imagePaths.map((imagePath) => {
+    const ext = imagePath.split(".").pop()?.toLowerCase() ?? "jpg";
+    const mimeType = MIME_TYPES[ext] ?? "image/jpeg";
+    const base64 = fs.readFileSync(imagePath).toString("base64");
+    return { inlineData: { data: base64, mimeType } };
   });
 
-  const text = (response.content[0] as { text: string }).text.trim();
+  const result = await model.generateContent([...imageParts, buildPrompt(note)]);
+
+  const text = result.response.text().trim();
   const jsonMatch = text.match(/\{[\s\S]*\}/);
-  if (!jsonMatch) throw new Error("AI returned invalid response");
+  if (!jsonMatch) throw new Error("AI noto'g'ri javob qaytardi");
   return JSON.parse(jsonMatch[0]);
 }

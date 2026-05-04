@@ -4,6 +4,7 @@ import dayjs from "dayjs";
 import { PageWrapper } from "@/shared/components/templates/PageWrapper";
 import { MealCard } from "@/shared/components/moleculas/MealCard";
 import { EmptyState } from "@/shared/components/templates/EmptyState";
+import { MealDetailModal } from "./components/MealDetailModal";
 import { useGetAll } from "@/shared/hooks/api/useGetAll";
 import { useGetOne } from "@/shared/hooks/api/useGetOne";
 import { MealInterface, DailyStatsInterface } from "@/shared/interfaces/Meal.interface";
@@ -11,6 +12,7 @@ import { QUERY_KEYS } from "@/shared/constants/queryKeys";
 
 export function History() {
   const [selectedDate, setSelectedDate] = useState(dayjs().format("YYYY-MM-DD"));
+  const [selectedMeal, setSelectedMeal] = useState<MealInterface | null>(null);
 
   const meals = useGetAll<MealInterface>({
     url: ["meals"],
@@ -65,13 +67,28 @@ export function History() {
         </div>
       ) : meals.data?.length ? (
         <div className="flex flex-col gap-3">
-          {meals.data.map((meal) => <MealCard key={meal._id} meal={meal} />)}
+          {meals.data.map((meal) => (
+            <button
+              key={meal._id}
+              onClick={() => setSelectedMeal(meal)}
+              className="w-full text-left"
+            >
+              <MealCard meal={meal} />
+            </button>
+          ))}
         </div>
       ) : (
         <EmptyState
           icon="📅"
           title="Bu kun uchun taom yo'q"
           description="Ovqat yeganingizni qayd qilishni boshlang"
+        />
+      )}
+
+      {selectedMeal && (
+        <MealDetailModal
+          meal={selectedMeal}
+          onClose={() => setSelectedMeal(null)}
         />
       )}
     </PageWrapper>

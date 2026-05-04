@@ -1,50 +1,62 @@
-import { useRef, useState, useCallback } from "react";
+import { useRef, useState, useCallback, DragEvent } from "react";
 import Webcam from "react-webcam";
-import { Camera, Upload, RefreshCw, X } from "lucide-react";
+import { Camera, ImagePlus, RefreshCw, X } from "lucide-react";
 
 interface Props {
-  onCapture: (file: File) => void;
+  onFilesChange: (files: File[]) => void;
+  disabled?: boolean;
 }
 
-export function CameraCapture({ onCapture }: Props) {
+export function CameraCapture({ onFilesChange, disabled }: Props) {
   const webcamRef = useRef<Webcam>(null);
   const fileRef = useRef<HTMLInputElement>(null);
   const [mode, setMode] = useState<"idle" | "camera">("idle");
-  const [preview, setPreview] = useState<string | null>(null);
+  const [previews, setPreviews] = useState<{ url: string; file: File }[]>([]);
+  const [isDragging, setIsDragging] = useState(false);
+
+  function addFiles(incoming: FileList | File[]) {
+    const imageFiles = Array.from(incoming).filter((f) => f.type.startsWith("image/"));
+    if (!imageFiles.length) return;
+    const newPreviews = imageFiles.map((f) => ({ url: URL.createObjectURL(f), file: f }));
+    setPreviews((prev) => {
+      const updated = [...prev, ...newPreviews];
+      onFilesChange(updated.map((p) => p.file));
+      return updated;
+    });
+  }
+
+  function removeFile(index: number) {
+    setPreviews((prev) => {
+      URL.revokeObjectURL(prev[index].url);
+      const updated = prev.filter((_, i) => i !== index);
+      onFilesChange(updated.map((p) => p.file));
+      return updated;
+    });
+  }
 
   const capture = useCallback(() => {
-    const imageSrc = webcamRef.current?.getScreenshot();
-    if (!imageSrc) return;
-    setPreview(imageSrc);
+    const src = webcamRef.current?.getScreenshot();
+    if (!src) return;
     setMode("idle");
-    fetch(imageSrc)
+    fetch(src)
       .then((r) => r.blob())
       .then((blob) => {
-        const file = new File([blob], "capture.jpg", { type: "image/jpeg" });
-        onCapture(file);
+        addFiles([new File([blob], `capture-${Date.now()}.jpg`, { type: "image/jpeg" })]);
       });
-  }, [onCapture]);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
-  const handleFileChange = (e: React.ChangeEvent<HTMLInputElement>) => {
-    const file = e.target.files?.[0];
-    if (!file) return;
-    const url = URL.createObjectURL(file);
-    setPreview(url);
-    onCapture(file);
-  };
-
-  if (preview) {
-    return (
-      <div className="relative">
-        <img src={preview} alt="captured" className="w-full rounded-2xl object-cover max-h-64" />
-        <button
-          onClick={() => { setPreview(null); }}
-          className="absolute right-2 top-2 flex h-8 w-8 items-center justify-center rounded-full bg-slate-900/80 text-white backdrop-blur-sm"
-        >
-          <X size={16} />
-        </button>
-      </div>
-    );
+  function onDragOver(e: DragEvent) {
+    e.preventDefault();
+    if (!disabled) setIsDragging(true);
+  }
+  function onDragLeave(e: DragEvent) {
+    e.preventDefault();
+    setIsDragging(false);
+  }
+  function onDrop(e: DragEvent) {
+    e.preventDefault();
+    setIsDragging(false);
+    if (!disabled) addFiles(e.dataTransfer.files);
   }
 
   if (mode === "camera") {
@@ -78,28 +90,68 @@ export function CameraCapture({ onCapture }: Props) {
   }
 
   return (
-    <div className="flex gap-3">
+    <div className="flex flex-col gap-3">
+      <div
+        onDragOver={onDragOver}
+        onDragLeave={onDragLeave}
+        onDrop={onDrop}
+        onClick={() => !disabled && fileRef.current?.click()}
+        className={[
+          "flex flex-col items-center justify-center gap-3 rounded-2xl border-2 border-dashed py-10 transition-all",
+          isDragging
+            ? "border-emerald-400 bg-emerald-500/10 scale-[1.01]"
+            : "border-slate-700 hover:border-emerald-500/50 hover:bg-emerald-500/5",
+          disabled ? "opacity-50 cursor-not-allowed" : "cursor-pointer",
+        ].join(" ")}
+      >
+        <div className="flex h-14 w-14 items-center justify-center rounded-2xl bg-slate-800">
+          <ImagePlus size={28} className={isDragging ? "text-emerald-300" : "text-emerald-400"} />
+        </div>
+        <div className="text-center">
+          <p className="text-sm font-medium text-slate-300">
+            {isDragging ? "Qo'yib yuboring!" : "Rasm tashlang yoki bosing"}
+          </p>
+          <p className="text-xs text-slate-500 mt-1">
+            Bir vaqtda bir nechta rasm yuklash mumkin
+          </p>
+        </div>
+        <input
+          ref={fileRef}
+          type="file"
+          accept="image/*"
+          multiple
+          className="hidden"
+          onChange={(e) => e.target.files && addFiles(e.target.files)}
+        />
+      </div>
+
       <button
         onClick={() => setMode("camera")}
-        className="flex flex-1 flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-slate-700 py-8 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all"
+        disabled={disabled}
+        className="flex items-center justify-center gap-2 rounded-xl border border-slate-700 py-3 text-sm text-slate-400 hover:border-emerald-500/50 hover:text-emerald-400 transition-colors disabled:opacity-50"
       >
-        <Camera size={32} className="text-emerald-400" />
-        <span className="text-sm font-medium text-slate-300">Rasm olish</span>
+        <Camera size={18} />
+        Kamera bilan olish
       </button>
-      <button
-        onClick={() => fileRef.current?.click()}
-        className="flex flex-1 flex-col items-center gap-3 rounded-2xl border-2 border-dashed border-slate-700 py-8 hover:border-emerald-500/50 hover:bg-emerald-500/5 transition-all"
-      >
-        <Upload size={32} className="text-emerald-400" />
-        <span className="text-sm font-medium text-slate-300">Yuklash</span>
-      </button>
-      <input
-        ref={fileRef}
-        type="file"
-        accept="image/*"
-        className="hidden"
-        onChange={handleFileChange}
-      />
+
+      {previews.length > 0 && (
+        <div className="grid grid-cols-3 gap-2">
+          {previews.map(({ url }, i) => (
+            <div key={i} className="relative aspect-square">
+              <img src={url} alt="preview" className="h-full w-full rounded-xl object-cover" />
+              <button
+                onClick={(e) => { e.stopPropagation(); removeFile(i); }}
+                className="absolute right-1 top-1 flex h-6 w-6 items-center justify-center rounded-full bg-slate-900/80 text-white backdrop-blur-sm hover:bg-red-500/80 transition-colors"
+              >
+                <X size={12} />
+              </button>
+              <div className="absolute bottom-1 left-1 rounded-md bg-slate-900/70 px-1.5 py-0.5 text-[10px] text-slate-300 backdrop-blur-sm">
+                #{i + 1}
+              </div>
+            </div>
+          ))}
+        </div>
+      )}
     </div>
   );
 }

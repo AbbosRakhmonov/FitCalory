@@ -12,7 +12,7 @@ const envSchema = z.object({
   JWT_REFRESH_SECRET: z.string(),
   JWT_ACCESS_EXPIRES: z.string().default("15m"),
   JWT_REFRESH_EXPIRES: z.string().default("7d"),
-  ANTHROPIC_API_KEY: z.string(),
+  GEMINI_API_KEY: z.string(),
   GOOGLE_CLIENT_ID: z.string().optional(),
   CLIENT_URL: z.string().default("http://localhost:5173"),
 });

@@ -3,7 +3,7 @@ import request from "@/request";
 
 interface Props {
   urlFn: (id: string) => string;
-  invalidateKeys?: unknown[][];
+  invalidateKeys?: readonly (readonly unknown[])[];
   options?: Omit<UseMutationOptions<void, Error, string>, "mutationFn">;
 }
 

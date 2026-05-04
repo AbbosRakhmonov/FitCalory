@@ -1,19 +1,16 @@
-import { useEffect } from "react";
-import { useForm } from "react-hook-form";
+import { useEffect, useMemo } from "react";
+import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { LogOut, Calculator } from "lucide-react";
+import { LogOut, Flame, Zap, Target } from "lucide-react";
+import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageWrapper } from "@/shared/components/templates/PageWrapper";
 import { MyInput } from "@/shared/components/atoms/form/MyInput";
 import { MySelect } from "@/shared/components/atoms/form/MySelect";
-import { useGetOne } from "@/shared/hooks/api/useGetOne";
-import { useMutate } from "@/shared/hooks/api/useMutate";
-import { QUERY_KEYS } from "@/shared/constants/queryKeys";
-import { UserInterface } from "@/shared/interfaces/User.interface";
 import { useAuthStore } from "@/shared/store/useAuthStore";
 import { useUserStore } from "@/shared/store/useUserStore";
-import { useNavigate } from "react-router-dom";
+import { useProfile } from "./hooks/useProfile";
 
 const schema = z.object({
   name: z.string().min(2).optional(),
@@ -29,32 +26,47 @@ const schema = z.object({
 
 type FormData = z.infer<typeof schema>;
 
+const ACTIVITY_MULTIPLIERS: Record<string, number> = {
+  sedentary: 1.2,
+  light: 1.375,
+  moderate: 1.55,
+  active: 1.725,
+  very_active: 1.9,
+};
+
 export function Profile() {
   const navigate = useNavigate();
+  const [searchParams] = useSearchParams();
+  const isOnboarding = searchParams.get("onboarding") === "true";
+
   const clearAuth = useAuthStore((s) => s.clear);
   const clearUser = useUserStore((s) => s.clear);
+  const { user, update } = useProfile();
 
-  const user = useGetOne<UserInterface>({
-    url: ["users", "me"],
-    queryKey: QUERY_KEYS.USER_ME,
-  });
-
-  const tdee = useGetOne<{ tdee: number }>({
-    url: ["users", "me", "tdee"],
-    queryKey: QUERY_KEYS.USER_TDEE,
-    options: { enabled: !!user.data?.height },
-  });
-
-  const updateProfile = useMutate<UserInterface, FormData>({
-    url: ["users", "me"],
-    method: "put",
-    invalidateKeys: [QUERY_KEYS.USER_ME, QUERY_KEYS.USER_TDEE],
-    options: { onSuccess: () => toast.success("Profil yangilandi!") },
-  });
-
-  const { register, handleSubmit, reset, formState: { errors, isDirty } } = useForm<FormData>({
+  const { register, handleSubmit, reset, control, formState: { errors, isDirty } } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
+
+  const watched = useWatch({ control });
+
+  const bmr = useMemo(() => {
+    const { height, weight, age, gender } = watched;
+    if (!height || !weight || !age) return null;
+    const base = 10 * Number(weight) + 6.25 * Number(height) - 5 * Number(age);
+    return Math.round(gender === "female" ? base - 161 : base + 5);
+  }, [watched]);
+
+  const clientTdee = useMemo(() => {
+    if (!bmr || !watched.activityLevel) return null;
+    return Math.round(bmr * (ACTIVITY_MULTIPLIERS[watched.activityLevel] ?? 1.55));
+  }, [bmr, watched.activityLevel]);
+
+  const targetCalories = useMemo(() => {
+    if (!clientTdee) return null;
+    if (watched.dietMode === "cut") return clientTdee - 500;
+    if (watched.dietMode === "bulk") return clientTdee + 300;
+    return clientTdee;
+  }, [clientTdee, watched.dietMode]);
 
   useEffect(() => {
     if (user.data) reset(user.data as FormData);
@@ -66,27 +78,63 @@ export function Profile() {
     navigate("/login");
   }
 
+  function onSubmit(data: FormData) {
+    update.mutate(data, {
+      onSuccess: () => {
+        if (isOnboarding) {
+          navigate("/dashboard");
+        } else {
+          toast.success("Profil yangilandi!");
+        }
+      },
+    });
+  }
+
   return (
     <PageWrapper
-      title="Profil"
+      title={isOnboarding ? "Profilingizni sozlang" : "Profil"}
+      subtitle={isOnboarding ? "TDEE to'g'ri hisoblashi uchun ma'lumotlaringizni kiriting" : undefined}
       action={
-        <button onClick={logout} className="flex items-center gap-1 text-sm text-red-400 hover:text-red-300">
-          <LogOut size={16} /> Chiqish
-        </button>
+        !isOnboarding ? (
+          <button onClick={logout} className="flex items-center gap-1 text-sm text-red-400 hover:text-red-300">
+            <LogOut size={16} /> Chiqish
+          </button>
+        ) : undefined
       }
     >
-      {tdee.data && (
-        <div className="flex items-center gap-3 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-4">
-          <Calculator size={20} className="text-emerald-400 flex-shrink-0" />
-          <div>
-            <p className="text-sm font-medium text-slate-200">Sizning TDEE: <span className="text-emerald-400 font-bold">{tdee.data.tdee} kcal</span></p>
-            <p className="text-xs text-slate-500 mt-0.5">Kunlik energiya sarfi (Mifflin-St Jeor)</p>
+      {isOnboarding && (
+        <div className="rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-4 text-sm text-slate-300 leading-relaxed">
+          Salom! Kunlik kaloriya maqsadingizni avtomatik hisoblash uchun quyidagi
+          ma'lumotlarni to'ldiring. Bularni keyinchalik o'zgartirishingiz mumkin.
+        </div>
+      )}
+
+      {bmr && clientTdee && (
+        <div className="grid grid-cols-3 gap-2">
+          <div className="flex flex-col items-center gap-1 rounded-2xl bg-slate-800/60 p-3">
+            <Flame size={16} className="text-orange-400" />
+            <span className="text-base font-bold text-slate-100">{bmr}</span>
+            <span className="text-[10px] text-slate-500 text-center">BMR</span>
+          </div>
+          <div className="flex flex-col items-center gap-1 rounded-2xl bg-slate-800/60 p-3">
+            <Zap size={16} className="text-yellow-400" />
+            <span className="text-base font-bold text-slate-100">{clientTdee}</span>
+            <span className="text-[10px] text-slate-500 text-center">TDEE</span>
+          </div>
+          <div className="flex flex-col items-center gap-1 rounded-2xl bg-emerald-500/10 border border-emerald-500/20 p-3">
+            <Target size={16} className="text-emerald-400" />
+            <span className="text-base font-bold text-emerald-400">{targetCalories}</span>
+            <span className="text-[10px] text-slate-500 text-center">
+              {watched.dietMode === "cut" ? "Cut" : watched.dietMode === "bulk" ? "Bulk" : "Maqsad"}
+            </span>
           </div>
         </div>
       )}
 
-      <form onSubmit={handleSubmit((data) => updateProfile.mutate(data))} className="flex flex-col gap-4">
-        <MyInput label="Ism" error={errors.name?.message} {...register("name")} />
+      <form onSubmit={handleSubmit(onSubmit)} className="flex flex-col gap-4">
+        {!isOnboarding && (
+          <MyInput label="Ism" error={errors.name?.message} {...register("name")} />
+        )}
 
         <div className="grid grid-cols-2 gap-3">
           <MyInput label="Bo'y (sm)" type="number" placeholder="175" error={errors.height?.message} {...register("height")} />
@@ -127,19 +175,34 @@ export function Profile() {
           {...register("dietMode")}
         />
 
-        <div className="grid grid-cols-2 gap-3">
-          <MyInput label="Kunlik kcal maqsad" type="number" error={errors.dailyCalorieGoal?.message} {...register("dailyCalorieGoal")} />
-          <MyInput label="Kunlik suv (ml)" type="number" error={errors.dailyWaterGoal?.message} {...register("dailyWaterGoal")} />
-        </div>
+        {!isOnboarding && (
+          <div className="grid grid-cols-2 gap-3">
+            <MyInput label="Kunlik kcal maqsad" type="number" error={errors.dailyCalorieGoal?.message} {...register("dailyCalorieGoal")} />
+            <MyInput label="Kunlik suv (ml)" type="number" error={errors.dailyWaterGoal?.message} {...register("dailyWaterGoal")} />
+          </div>
+        )}
 
         <button
           type="submit"
-          disabled={!isDirty || updateProfile.isPending}
+          disabled={(!isOnboarding && !isDirty) || update.isPending}
           className="mt-2 w-full rounded-xl bg-emerald-500 py-3.5 text-sm font-semibold text-white hover:bg-emerald-400 disabled:opacity-50 transition-colors"
         >
-          {updateProfile.isPending ? "Saqlanmoqda..." : "Saqlash"}
+          {update.isPending
+            ? "Saqlanmoqda..."
+            : isOnboarding
+            ? "Boshlash →"
+            : "Saqlash"}
         </button>
       </form>
+
+      {!isOnboarding && (
+        <button
+          onClick={logout}
+          className="flex w-full items-center justify-center gap-2 rounded-xl border border-red-500/20 py-3 text-sm text-red-400 hover:bg-red-500/5 transition-colors"
+        >
+          <LogOut size={16} /> Hisobdan chiqish
+        </button>
+      )}
     </PageWrapper>
   );
 }

@@ -10,7 +10,7 @@ export default defineConfig({
     tailwindcss(),
     VitePWA({
       registerType: "autoUpdate",
-      includeAssets: ["icons/*.png"],
+      includeAssets: ["icons/*.png", "icons/*.ico"],
       manifest: {
         name: "FitCalory",
         short_name: "FitCalory",
@@ -20,9 +20,27 @@ export default defineConfig({
         display: "standalone",
         orientation: "portrait",
         start_url: "/",
+        categories: ["health", "fitness"],
         icons: [
-          { src: "/icons/icon-192x192.png", sizes: "192x192", type: "image/png" },
-          { src: "/icons/icon-512x512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+          { src: "/icons/android-chrome-192x192.png", sizes: "192x192", type: "image/png" },
+          { src: "/icons/android-chrome-512x512.png", sizes: "512x512", type: "image/png" },
+          { src: "/icons/android-chrome-512x512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+        ],
+        screenshots: [
+          {
+            src: "/screenshots/mobile-1.png",
+            sizes: "430x932",
+            type: "image/png",
+            form_factor: "narrow",
+            label: "Dashboard",
+          },
+          {
+            src: "/screenshots/mobile-2.png",
+            sizes: "430x932",
+            type: "image/png",
+            form_factor: "narrow",
+            label: "Log Meal",
+          },
         ],
       },
       workbox: {

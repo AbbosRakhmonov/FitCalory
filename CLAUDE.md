@@ -1,12 +1,12 @@
 # FitCalory — Developer Guide
 
 ## Project Overview
-MERN PWA app for AI-powered food calorie tracking using Claude Vision API.
+MERN PWA app for AI-powered food calorie tracking using Google Gemini Vision API.
 
 ## Stack
 - **Frontend**: React 19 + TypeScript, Vite 6, React Query 5, React Router 7, Zustand, TailwindCSS 4
 - **Backend**: Express 4 + TypeScript, MongoDB/Mongoose, JWT, Google OAuth
-- **AI**: Anthropic Claude API (claude-opus-4-5 vision)
+- **AI**: Google Gemini API (gemini-2.5-flash vision)
 - **PWA**: vite-plugin-pwa + Workbox
 
 ## Setup
@@ -14,7 +14,7 @@ MERN PWA app for AI-powered food calorie tracking using Claude Vision API.
 ### 1. Environment
 Copy `.env.example` → `.env` and fill in:
 - `MONGODB_URI` — your MongoDB connection string
-- `ANTHROPIC_API_KEY` — from console.anthropic.com
+- `GEMINI_API_KEY` — from aistudio.google.com (free)
 - `GOOGLE_CLIENT_ID` — from Google Cloud Console (optional)
 
 ### 2. Install & Run
@@ -66,7 +66,7 @@ src/pages/FeatureName/
 ## Key Files
 - `client/src/request.ts` — axios instance, token refresh logic
 - `client/src/shared/store/useAuthStore.ts` — JWT tokens (persisted)
-- `server/src/modules/ai/ai.service.ts` — Claude Vision integration
+- `server/src/modules/ai/ai.service.ts` — Gemini Vision integration
 - `server/src/config/env.ts` — env validation with Zod
 
 ## API Endpoints
@@ -83,3 +83,60 @@ src/pages/FeatureName/
 ## PWA
 Icons needed at `client/public/icons/icon-192x192.png` and `icon-512x512.png`.
 Generate with any icon generator (e.g., realfavicongenerator.net).
+
+## Deployment (VPS + Nginx + PM2)
+
+### First-time server setup
+```bash
+# 1. Install Node 20, Yarn, PM2, Nginx on VPS (Ubuntu/Debian)
+curl -fsSL https://deb.nodesource.com/setup_20.x | sudo -E bash -
+sudo apt-get install -y nodejs nginx
+sudo npm install -g yarn pm2
+
+# 2. Clone repo and install dependencies
+git clone <repo-url> /var/www/fit-calory
+cd /var/www/fit-calory
+yarn install
+
+# 3. Configure environment
+cp .env.example .env
+nano .env
+# Set: NODE_ENV=production, CLIENT_URL=https://yourdomain.com
+# Fill: MONGODB_URI, JWT secrets (openssl rand -hex 64), GEMINI_API_KEY
+
+# 4. Build both workspaces
+yarn build      # → server/dist/ + client/dist/
+
+# 5. Set up Nginx
+sudo cp nginx/nginx.conf /etc/nginx/sites-available/fit-calory
+sudo sed -i 's/DOMAIN/yourdomain.com/g' /etc/nginx/sites-available/fit-calory
+sudo ln -s /etc/nginx/sites-available/fit-calory /etc/nginx/sites-enabled/
+sudo nginx -t && sudo systemctl reload nginx
+
+# 6. Get SSL certificate (Certbot auto-configures Nginx)
+sudo certbot --nginx -d yourdomain.com -d www.yourdomain.com
+
+# 7. Start app with PM2
+pm2 start ecosystem.config.cjs --env production
+pm2 save
+pm2 startup     # run the printed command to enable auto-start on reboot
+
+# 8. Create log directory (PM2 will write here)
+mkdir -p /var/www/fit-calory/logs
+```
+
+### Deploy updates
+```bash
+git pull
+yarn install
+yarn build
+pm2 restart fit-calory
+```
+
+### Useful PM2 commands
+```bash
+pm2 status                  # check process status
+pm2 logs fit-calory         # stream logs
+pm2 restart fit-calory      # restart after code change
+pm2 stop fit-calory         # stop the process
+```

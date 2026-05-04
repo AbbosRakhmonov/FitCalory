@@ -7,6 +7,8 @@
   ],
   "scripts": {
     "dev": "concurrently \"yarn workspace server dev\" \"yarn workspace client dev\"",
+    "build": "yarn workspace server build && yarn workspace client build",
+    "start": "node server/dist/server.js",
     "lint": "yarn workspace client lint && yarn workspace server lint",
     "lint:fix": "yarn workspace client lint:fix && yarn workspace server lint:fix",
     "prepare": "husky"

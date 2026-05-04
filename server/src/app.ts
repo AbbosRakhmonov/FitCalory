@@ -3,6 +3,7 @@ import cors from "cors";
 import helmet from "helmet";
 import morgan from "morgan";
 import cookieParser from "cookie-parser";
+import rateLimit from "express-rate-limit";
 import path from "path";
 import { env } from "./config/env";
 import { errorHandler } from "./middleware/error.middleware";
@@ -15,6 +16,22 @@ import aiRoutes from "./modules/ai/ai.route";
 
 const app = express();
 
+const authLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 10,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many requests, try again later" },
+});
+
+const aiLimiter = rateLimit({
+  windowMs: 15 * 60 * 1000,
+  max: 5,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many AI requests, try again later" },
+});
+
 app.use(helmet());
 app.use(cors({ origin: env.CLIENT_URL, credentials: true }));
 app.use(morgan(env.NODE_ENV === "development" ? "dev" : "combined"));
@@ -24,11 +41,11 @@ app.use(cookieParser());
 
 app.use("/uploads", express.static(path.resolve(__dirname, "../uploads")));
 
-app.use("/api/v1/auth", authRoutes);
+app.use("/api/v1/auth", authLimiter, authRoutes);
 app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/meals", mealRoutes);
 app.use("/api/v1/water", waterRoutes);
-app.use("/api/v1/ai", aiRoutes);
+app.use("/api/v1/ai", aiLimiter, aiRoutes);
 
 app.get("/api/v1/health", (_req, res) => res.json({ status: "ok" }));
 

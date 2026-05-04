@@ -42,7 +42,7 @@ export function Login() {
         const res = await request.post("/auth/google", { credential: response.access_token });
         setTokens(res.data.data.accessToken, res.data.data.refreshToken);
         setUser(res.data.data.user);
-        navigate("/dashboard");
+        navigate(res.data.data.isNewUser ? "/profile?onboarding=true" : "/dashboard");
       } catch {
         toast.error("Google orqali kirish muvaffaqiyatsiz");
       }

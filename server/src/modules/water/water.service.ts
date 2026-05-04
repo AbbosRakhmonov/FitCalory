@@ -1,7 +1,7 @@
 import { WaterLog } from "./water.model";
 
 export async function getWaterLog(userId: string, date: string) {
-  return WaterLog.findOne({ userId, date }) || { userId, date, entries: [], totalAmount: 0 };
+  return (await WaterLog.findOne({ userId, date })) ?? { userId, date, entries: [], totalAmount: 0 };
 }
 
 export async function addWaterEntry(userId: string, date: string, amount: number) {

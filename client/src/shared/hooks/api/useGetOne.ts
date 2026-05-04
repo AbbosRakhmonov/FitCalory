@@ -3,7 +3,7 @@ import { useApi } from "./useApi";
 
 interface Props<T> {
   url: (string | number)[];
-  queryKey: unknown[];
+  queryKey: readonly unknown[];
   params?: Record<string, unknown>;
   options?: Omit<UseQueryOptions<T>, "queryKey" | "queryFn">;
 }

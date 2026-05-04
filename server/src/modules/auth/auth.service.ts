@@ -36,30 +36,51 @@ export async function login(dto: LoginDto) {
 }
 
 export async function googleAuth(credential: string) {
-  const ticket = await googleClient.verifyIdToken({
-    idToken: credential,
-    audience: env.GOOGLE_CLIENT_ID,
-  });
-  const payload = ticket.getPayload();
-  if (!payload?.email) throw new Error("Invalid Google token");
+  let email: string | undefined;
+  let sub: string | undefined;
+  let name: string | undefined;
+  let picture: string | undefined;
 
-  let user = await User.findOne({ $or: [{ googleId: payload.sub }, { email: payload.email }] });
+  if (credential.startsWith("ya29.")) {
+    const res = await fetch("https://www.googleapis.com/oauth2/v3/userinfo", {
+      headers: { Authorization: `Bearer ${credential}` },
+    });
+    if (!res.ok) throw new Error("Invalid Google access token");
+    const info = (await res.json()) as { email?: string; sub?: string; name?: string; picture?: string };
+    ({ email, sub, name, picture } = info);
+  } else {
+    const ticket = await googleClient.verifyIdToken({
+      idToken: credential,
+      audience: env.GOOGLE_CLIENT_ID,
+    });
+    const payload = ticket.getPayload();
+    email = payload?.email;
+    sub = payload?.sub;
+    name = payload?.name;
+    picture = payload?.picture;
+  }
+
+  if (!email) throw new Error("Invalid Google token");
+
+  let isNewUser = false;
+  let user = await User.findOne({ $or: [{ googleId: sub }, { email }] });
   if (!user) {
     user = await User.create({
-      email: payload.email,
-      googleId: payload.sub,
-      name: payload.name || payload.email.split("@")[0],
-      avatar: payload.picture,
+      email,
+      googleId: sub,
+      name: name || email.split("@")[0],
+      avatar: picture,
     });
+    isNewUser = true;
   } else if (!user.googleId) {
-    user.googleId = payload.sub;
+    user.googleId = sub;
     await user.save();
   }
 
   const tokens = buildTokenResponse(user.id);
   await User.findByIdAndUpdate(user.id, { refreshToken: tokens.refreshToken });
 
-  return { user: { id: user.id, email: user.email, name: user.name }, ...tokens };
+  return { user: { id: user.id, email: user.email, name: user.name }, ...tokens, isNewUser };
 }
 
 export async function refresh(refreshToken: string) {
