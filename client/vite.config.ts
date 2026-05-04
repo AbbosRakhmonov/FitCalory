@@ -22,9 +22,22 @@ export default defineConfig({
         start_url: "/",
         categories: ["health", "fitness"],
         icons: [
-          { src: "/icons/android-chrome-192x192.png", sizes: "192x192", type: "image/png" },
-          { src: "/icons/android-chrome-512x512.png", sizes: "512x512", type: "image/png" },
-          { src: "/icons/android-chrome-512x512.png", sizes: "512x512", type: "image/png", purpose: "maskable" },
+          {
+            src: "/icons/android-chrome-192x192.png",
+            sizes: "192x192",
+            type: "image/png",
+          },
+          {
+            src: "/icons/android-chrome-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+          },
+          {
+            src: "/icons/android-chrome-512x512.png",
+            sizes: "512x512",
+            type: "image/png",
+            purpose: "maskable",
+          },
         ],
         screenshots: [
           {
@@ -60,8 +73,8 @@ export default defineConfig({
   },
   server: {
     proxy: {
-      "/api": { target: "http://localhost:5000", changeOrigin: true },
-      "/uploads": { target: "http://localhost:5000", changeOrigin: true },
+      "/api": { target: "http://localhost:5005", changeOrigin: true },
+      "/uploads": { target: "http://localhost:5005", changeOrigin: true },
     },
   },
 });
