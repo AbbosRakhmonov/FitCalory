@@ -15,6 +15,8 @@ export interface IUser extends Document {
   dailyCalorieGoal: number;
   dailyWaterGoal: number;
   dietMode: "cut" | "maintain" | "bulk";
+  allowedFoods: string[];
+  restrictedFoods: string[];
   refreshToken?: string;
   comparePassword(password: string): Promise<boolean>;
 }
@@ -38,6 +40,8 @@ const userSchema = new Schema<IUser>(
     dailyCalorieGoal: { type: Number, default: 2000 },
     dailyWaterGoal: { type: Number, default: 2500 },
     dietMode: { type: String, enum: ["cut", "maintain", "bulk"], default: "maintain" },
+    allowedFoods: { type: [String], default: [] },
+    restrictedFoods: { type: [String], default: [] },
     refreshToken: { type: String, select: false },
   },
   { timestamps: true }

@@ -14,6 +14,8 @@ export interface UpdateProfileDto {
   dailyCalorieGoal?: number;
   dailyWaterGoal?: number;
   dietMode?: "cut" | "maintain" | "bulk";
+  allowedFoods?: string[];
+  restrictedFoods?: string[];
 }
 
 export function useProfile() {

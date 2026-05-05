@@ -1,10 +1,11 @@
 import { NavLink, useNavigate } from "react-router-dom";
-import { Home, CalendarDays, TrendingUp, User, Plus } from "lucide-react";
+import { Home, CalendarDays, TrendingUp, User, Plus, Bot } from "lucide-react";
 import { cn } from "@/shared/utils/cn";
 
 const navItems = [
   { to: "/dashboard", icon: Home, label: "Bosh" },
   { to: "/history", icon: CalendarDays, label: "Tarix" },
+  { to: "/chat", icon: Bot, label: "AI" },
   { to: "/progress", icon: TrendingUp, label: "Progress" },
   { to: "/profile", icon: User, label: "Profil" },
 ];
@@ -21,7 +22,7 @@ export function BottomNav() {
             to={to}
             className={({ isActive }) =>
               cn(
-                "flex flex-col items-center gap-1 rounded-xl px-5 py-2 text-xs font-medium transition-colors",
+                "flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs font-medium transition-colors",
                 isActive ? "text-emerald-400" : "text-slate-500 hover:text-slate-300"
               )
             }
@@ -44,7 +45,7 @@ export function BottomNav() {
             to={to}
             className={({ isActive }) =>
               cn(
-                "flex flex-col items-center gap-1 rounded-xl px-5 py-2 text-xs font-medium transition-colors",
+                "flex flex-col items-center gap-1 rounded-xl px-3 py-2 text-xs font-medium transition-colors",
                 isActive ? "text-emerald-400" : "text-slate-500 hover:text-slate-300"
               )
             }

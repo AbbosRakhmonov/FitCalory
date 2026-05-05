@@ -6,7 +6,7 @@ import { IsLoggedIn } from "@/shared/guards/IsLoggedIn";
 import { IsGuest } from "@/shared/guards/IsGuest";
 import { Wrap } from "./Wrap";
 import {
-  Dashboard, LogMeal, History, Progress, Profile,
+  Dashboard, LogMeal, History, Progress, Profile, Chat,
   Login, Register,
 } from "./routeComponents";
 
@@ -32,6 +32,7 @@ export const routeConfig: RouteObject[] = [
           { path: "/dashboard", element: <Wrap><Dashboard /></Wrap> },
           { path: "/log", element: <Wrap><LogMeal /></Wrap> },
           { path: "/history", element: <Wrap><History /></Wrap> },
+          { path: "/chat", element: <Wrap><Chat /></Wrap> },
           { path: "/progress", element: <Wrap><Progress /></Wrap> },
           { path: "/profile", element: <Wrap><Profile /></Wrap> },
         ],

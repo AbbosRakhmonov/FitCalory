@@ -7,4 +7,5 @@ export const QUERY_KEYS = {
   DAILY_STATS: (date: string) => ["meals", "stats", "daily", date],
   WEEKLY_STATS: (startDate: string) => ["meals", "stats", "weekly", startDate],
   WATER: (date: string) => ["water", date],
+  CHAT_HISTORY: ["chat", "history"],
 } as const;

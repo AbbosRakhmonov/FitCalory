@@ -11,6 +11,8 @@ export const updateProfileSchema = z.object({
   dailyWaterGoal: z.number().min(500).max(10000).optional(),
   dietMode: z.enum(["cut", "maintain", "bulk"]).optional(),
   avatar: z.string().url().optional(),
+  allowedFoods: z.array(z.string().max(50)).max(50).optional(),
+  restrictedFoods: z.array(z.string().max(50)).max(50).optional(),
 });
 
 export type UpdateProfileDto = z.infer<typeof updateProfileSchema>;

@@ -11,7 +11,7 @@ const envSchema = z.object({
   JWT_ACCESS_SECRET: z.string(),
   JWT_REFRESH_SECRET: z.string(),
   JWT_ACCESS_EXPIRES: z.string().default("15m"),
-  JWT_REFRESH_EXPIRES: z.string().default("7d"),
+  JWT_REFRESH_EXPIRES: z.string().default("30d"),
   GEMINI_API_KEY: z.string(),
   GOOGLE_CLIENT_ID: z.string().optional(),
   CLIENT_URL: z.string().default("http://localhost:5173"),

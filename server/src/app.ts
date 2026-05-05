@@ -13,6 +13,7 @@ import userRoutes from "./modules/users/user.route";
 import mealRoutes from "./modules/meals/meal.route";
 import waterRoutes from "./modules/water/water.route";
 import aiRoutes from "./modules/ai/ai.route";
+import chatRoutes from "./modules/chat/chat.route";
 
 const app = express();
 
@@ -34,6 +35,14 @@ const aiLimiter = rateLimit({
   message: { success: false, message: "Too many AI requests, try again later" },
 });
 
+const chatLimiter = rateLimit({
+  windowMs: 60 * 1000,
+  max: 30,
+  standardHeaders: true,
+  legacyHeaders: false,
+  message: { success: false, message: "Too many chat requests, slow down" },
+});
+
 app.use(helmet());
 app.use(cors({ origin: env.CLIENT_URL, credentials: true }));
 app.use(morgan(env.NODE_ENV === "development" ? "dev" : "combined"));
@@ -48,6 +57,7 @@ app.use("/api/v1/users", userRoutes);
 app.use("/api/v1/meals", mealRoutes);
 app.use("/api/v1/water", waterRoutes);
 app.use("/api/v1/ai", aiLimiter, aiRoutes);
+app.use("/api/v1/chat", chatLimiter, chatRoutes);
 
 app.get("/api/v1/health", (_req, res) => res.json({ status: "ok" }));
 

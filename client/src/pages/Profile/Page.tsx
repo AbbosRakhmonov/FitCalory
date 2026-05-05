@@ -1,9 +1,9 @@
-import { useEffect, useMemo } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { useForm, useWatch } from "react-hook-form";
 import { zodResolver } from "@hookform/resolvers/zod";
 import { z } from "zod";
 import { toast } from "sonner";
-import { LogOut, Flame, Zap, Target } from "lucide-react";
+import { LogOut, Flame, Zap, Target, Plus, X } from "lucide-react";
 import { useNavigate, useSearchParams } from "react-router-dom";
 import { PageWrapper } from "@/shared/components/templates/PageWrapper";
 import { MyInput } from "@/shared/components/atoms/form/MyInput";
@@ -43,6 +43,11 @@ export function Profile() {
   const clearUser = useUserStore((s) => s.clear);
   const { user, update } = useProfile();
 
+  const [allowedFoods, setAllowedFoods] = useState<string[]>([]);
+  const [restrictedFoods, setRestrictedFoods] = useState<string[]>([]);
+  const [allowedInput, setAllowedInput] = useState("");
+  const [restrictedInput, setRestrictedInput] = useState("");
+
   const { register, handleSubmit, reset, control, formState: { errors, isDirty } } = useForm<FormData>({
     resolver: zodResolver(schema),
   });
@@ -69,7 +74,11 @@ export function Profile() {
   }, [clientTdee, watched.dietMode]);
 
   useEffect(() => {
-    if (user.data) reset(user.data as FormData);
+    if (user.data) {
+      reset(user.data as FormData);
+      setAllowedFoods(user.data.allowedFoods ?? []);
+      setRestrictedFoods(user.data.restrictedFoods ?? []);
+    }
   }, [user.data, reset]);
 
   function logout() {
@@ -78,8 +87,31 @@ export function Profile() {
     navigate("/login");
   }
 
+  function addTag(
+    type: "allowed" | "restricted",
+    input: string,
+    setInput: (v: string) => void
+  ) {
+    const tag = input.trim();
+    if (!tag) return;
+    if (type === "allowed") {
+      setAllowedFoods((prev) => (prev.includes(tag) ? prev : [...prev, tag]));
+    } else {
+      setRestrictedFoods((prev) => (prev.includes(tag) ? prev : [...prev, tag]));
+    }
+    setInput("");
+  }
+
+  function removeTag(type: "allowed" | "restricted", idx: number) {
+    if (type === "allowed") {
+      setAllowedFoods((prev) => prev.filter((_, i) => i !== idx));
+    } else {
+      setRestrictedFoods((prev) => prev.filter((_, i) => i !== idx));
+    }
+  }
+
   function onSubmit(data: FormData) {
-    update.mutate(data, {
+    update.mutate({ ...data, allowedFoods, restrictedFoods }, {
       onSuccess: () => {
         if (isOnboarding) {
           navigate("/dashboard");
@@ -182,6 +214,34 @@ export function Profile() {
           </div>
         )}
 
+        {!isOnboarding && (
+          <div className="flex flex-col gap-4 rounded-2xl border border-slate-700/50 bg-slate-800/40 p-4">
+            <p className="text-sm font-semibold text-slate-200">AI Ovqat Sozlamalari</p>
+
+            <FoodTagInput
+              label="Afzal mahsulotlar"
+              placeholder="Masalan: tovuq, tuxum..."
+              tags={allowedFoods}
+              inputValue={allowedInput}
+              onInputChange={setAllowedInput}
+              onAdd={() => addTag("allowed", allowedInput, setAllowedInput)}
+              onRemove={(i) => removeTag("allowed", i)}
+              tagColor="bg-emerald-500/15 text-emerald-400 border-emerald-500/30"
+            />
+
+            <FoodTagInput
+              label="Taqiqlangan mahsulotlar"
+              placeholder="Masalan: gluten, sut..."
+              tags={restrictedFoods}
+              inputValue={restrictedInput}
+              onInputChange={setRestrictedInput}
+              onAdd={() => addTag("restricted", restrictedInput, setRestrictedInput)}
+              onRemove={(i) => removeTag("restricted", i)}
+              tagColor="bg-red-500/15 text-red-400 border-red-500/30"
+            />
+          </div>
+        )}
+
         <button
           type="submit"
           disabled={(!isOnboarding && !isDirty) || update.isPending}
@@ -204,5 +264,67 @@ export function Profile() {
         </button>
       )}
     </PageWrapper>
+  );
+}
+
+function FoodTagInput({
+  label,
+  placeholder,
+  tags,
+  inputValue,
+  onInputChange,
+  onAdd,
+  onRemove,
+  tagColor,
+}: {
+  label: string;
+  placeholder: string;
+  tags: string[];
+  inputValue: string;
+  onInputChange: (v: string) => void;
+  onAdd: () => void;
+  onRemove: (i: number) => void;
+  tagColor: string;
+}) {
+  return (
+    <div className="flex flex-col gap-2">
+      <p className="text-xs font-medium text-slate-400">{label}</p>
+      <div className="flex gap-2">
+        <input
+          type="text"
+          value={inputValue}
+          onChange={(e) => onInputChange(e.target.value)}
+          onKeyDown={(e) => e.key === "Enter" && (e.preventDefault(), onAdd())}
+          placeholder={placeholder}
+          className="flex-1 rounded-xl border border-slate-700 bg-slate-800 px-3 py-2 text-sm text-slate-100 placeholder-slate-500 focus:border-emerald-500/50 focus:outline-none"
+        />
+        <button
+          type="button"
+          onClick={onAdd}
+          className="flex h-9 w-9 flex-shrink-0 items-center justify-center rounded-xl bg-emerald-500/20 text-emerald-400 hover:bg-emerald-500/30 transition-colors"
+        >
+          <Plus size={16} />
+        </button>
+      </div>
+      {tags.length > 0 && (
+        <div className="flex flex-wrap gap-1.5">
+          {tags.map((tag, i) => (
+            <span
+              key={i}
+              className={`flex items-center gap-1 rounded-lg border px-2 py-0.5 text-xs ${tagColor}`}
+            >
+              {tag}
+              <button
+                type="button"
+                onClick={() => onRemove(i)}
+                className="ml-0.5 opacity-70 hover:opacity-100"
+              >
+                <X size={10} />
+              </button>
+            </span>
+          ))}
+        </div>
+      )}
+    </div>
   );
 }

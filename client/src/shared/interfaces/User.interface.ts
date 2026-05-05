@@ -11,5 +11,7 @@ export interface UserInterface {
   dailyCalorieGoal: number;
   dailyWaterGoal: number;
   dietMode: "cut" | "maintain" | "bulk";
+  allowedFoods: string[];
+  restrictedFoods: string[];
   createdAt: string;
 }

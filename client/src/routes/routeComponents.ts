@@ -15,6 +15,9 @@ export const Progress = lazy(() =>
 export const Profile = lazy(() =>
   import("@/pages/Profile/Page").then((m) => ({ default: m.Profile }))
 );
+export const Chat = lazy(() =>
+  import("@/pages/Chat/Page").then((m) => ({ default: m.Chat }))
+);
 export const Login = lazy(() =>
   import("@/layouts/auth/pages/Login").then((m) => ({ default: m.Login }))
 );

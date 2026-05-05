@@ -100,6 +100,69 @@ Muhim qoidalar:
 Makrolar gramda, kaloriya kcal da bo'lsin.`;
 }
 
+export async function chatWithFoodAI(params: {
+  userMessage: string;
+  history: { role: "user" | "assistant"; content: string }[];
+  userContext: {
+    name: string;
+    age: number;
+    weight: number;
+    height: number;
+    dailyCalorieGoal: number;
+    proteinGoal: number;
+    carbsGoal: number;
+    fatGoal: number;
+    todayCalories: number;
+    todayProtein: number;
+    todayCarbs: number;
+    todayFat: number;
+    allowedFoods: string[];
+    restrictedFoods: string[];
+  };
+}): Promise<string> {
+  const { userMessage, history, userContext } = params;
+  const remainingCal = Math.max(0, userContext.dailyCalorieGoal - userContext.todayCalories);
+  const remainingProtein = Math.max(0, userContext.proteinGoal - userContext.todayProtein);
+  const remainingCarbs = Math.max(0, userContext.carbsGoal - userContext.todayCarbs);
+  const remainingFat = Math.max(0, userContext.fatGoal - userContext.todayFat);
+
+  const systemInstruction = `Siz FitCalory ilovasining AI ovqatlanish yordamchisisiz.
+Foydalanuvchi: ${userContext.name}, ${userContext.age} yosh, ${userContext.weight}kg, ${userContext.height}cm
+
+Kunlik maqsadlar:
+  Kaloriya: ${userContext.dailyCalorieGoal} kcal | Oqsil: ${userContext.proteinGoal}g | Uglevod: ${userContext.carbsGoal}g | Yog': ${userContext.fatGoal}g
+
+Bugun yegan:
+  Kaloriya: ${Math.round(userContext.todayCalories)} kcal | Oqsil: ${Math.round(userContext.todayProtein)}g | Uglevod: ${Math.round(userContext.todayCarbs)}g | Yog': ${Math.round(userContext.todayFat)}g
+
+Qolgan:
+  Kaloriya: ${Math.round(remainingCal)} kcal | Oqsil: ${Math.round(remainingProtein)}g | Uglevod: ${Math.round(remainingCarbs)}g | Yog': ${Math.round(remainingFat)}g${
+    userContext.restrictedFoods.length
+      ? `\n\nTaqiqlangan mahsulotlar: ${userContext.restrictedFoods.join(", ")}`
+      : ""
+  }${
+    userContext.allowedFoods.length
+      ? `\nAfzal mahsulotlar: ${userContext.allowedFoods.join(", ")}`
+      : ""
+  }
+
+Har doim o'zbek tilida, qisqa va aniq javob bering. Retsept bersangiz taxminiy kaloriya va makrolarni ham qo'shing.`;
+
+  const model = genAI.getGenerativeModel({
+    model: "gemini-2.5-flash",
+    systemInstruction,
+  });
+
+  const geminiHistory = history.map((msg) => ({
+    role: (msg.role === "assistant" ? "model" : "user") as "user" | "model",
+    parts: [{ text: msg.content }],
+  }));
+
+  const chat = model.startChat({ history: geminiHistory });
+  const result = await chat.sendMessage(userMessage);
+  return result.response.text().trim();
+}
+
 export async function analyzeFoodText(note: string): Promise<AiAnalysisResult> {
   const model = genAI.getGenerativeModel({ model: "gemini-2.5-flash" });
   const result = await model.generateContent(buildTextPrompt(note));
