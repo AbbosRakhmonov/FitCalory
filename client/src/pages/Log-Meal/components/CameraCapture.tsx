@@ -7,6 +7,27 @@ interface Props {
   disabled?: boolean;
 }
 
+const IMAGE_EXTENSIONS = ["jpg", "jpeg", "png", "webp", "heic", "heif", "gif", "avif", "bmp"];
+
+function isImageFile(f: File): boolean {
+  if (f.type.startsWith("image/")) return true;
+  // Android: some browsers return empty MIME type for gallery images
+  if (!f.type) {
+    const ext = f.name.split(".").pop()?.toLowerCase() ?? "";
+    return IMAGE_EXTENSIONS.includes(ext);
+  }
+  return false;
+}
+
+function fileToDataUrl(file: File): Promise<string> {
+  return new Promise((resolve, reject) => {
+    const reader = new FileReader();
+    reader.onload = (e) => resolve(e.target?.result as string);
+    reader.onerror = reject;
+    reader.readAsDataURL(file);
+  });
+}
+
 export function CameraCapture({ onFilesChange, disabled }: Props) {
   const webcamRef = useRef<Webcam>(null);
   const fileRef = useRef<HTMLInputElement>(null);
@@ -14,10 +35,13 @@ export function CameraCapture({ onFilesChange, disabled }: Props) {
   const [previews, setPreviews] = useState<{ url: string; file: File }[]>([]);
   const [isDragging, setIsDragging] = useState(false);
 
-  function addFiles(incoming: FileList | File[]) {
-    const imageFiles = Array.from(incoming).filter((f) => f.type.startsWith("image/"));
+  async function addFiles(incoming: FileList | File[]) {
+    const imageFiles = Array.from(incoming).filter(isImageFile);
     if (!imageFiles.length) return;
-    const newPreviews = imageFiles.map((f) => ({ url: URL.createObjectURL(f), file: f }));
+    // Use FileReader data URLs — more reliable on mobile than blob URLs
+    const newPreviews = await Promise.all(
+      imageFiles.map(async (f) => ({ url: await fileToDataUrl(f), file: f }))
+    );
     setPreviews((prev) => {
       const updated = [...prev, ...newPreviews];
       onFilesChange(updated.map((p) => p.file));
@@ -27,7 +51,6 @@ export function CameraCapture({ onFilesChange, disabled }: Props) {
 
   function removeFile(index: number) {
     setPreviews((prev) => {
-      URL.revokeObjectURL(prev[index].url);
       const updated = prev.filter((_, i) => i !== index);
       onFilesChange(updated.map((p) => p.file));
       return updated;

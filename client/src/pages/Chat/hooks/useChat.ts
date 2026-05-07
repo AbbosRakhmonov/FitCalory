@@ -56,15 +56,23 @@ export function useChat() {
     onSuccess: (data) => {
       queryClient.setQueryData(
         [...QUERY_KEYS.CHAT_HISTORY],
-        (old: { pages: ChatHistoryResponse[] } | undefined) => {
-          if (!old) return old;
+        (old: { pages: ChatHistoryResponse[]; pageParams: unknown[] } | undefined) => {
+          const newMessages = [data.aiMsg, data.userMsg];
+          if (!old) {
+            // History not loaded yet (first message ever or query still loading)
+            return {
+              pages: [{ messages: newMessages, hasMore: false }],
+              pageParams: [undefined],
+            };
+          }
           const updatedPages = [...old.pages];
           if (updatedPages.length > 0) {
-            const firstPage = updatedPages[0];
             updatedPages[0] = {
-              ...firstPage,
-              messages: [data.aiMsg, data.userMsg, ...firstPage.messages],
+              ...updatedPages[0],
+              messages: [...newMessages, ...updatedPages[0].messages],
             };
+          } else {
+            updatedPages.push({ messages: newMessages, hasMore: false });
           }
           return { ...old, pages: updatedPages };
         }
@@ -79,11 +87,13 @@ export function useChat() {
       .flatMap((page) => [...page.messages].reverse());
   }, [historyQuery.data]);
 
-  const remainingCalories = useMemo(() => {
-    const goal = user.data?.dailyCalorieGoal ?? 0;
-    const eaten = dailyStats.data?.totalCalories ?? 0;
-    return Math.max(0, goal - eaten);
-  }, [user.data, dailyStats.data]);
+  const goalCalories = user.data?.dailyCalorieGoal ?? 0;
+  const eatenCalories = dailyStats.data?.totalCalories ?? 0;
+
+  const remainingCalories = useMemo(
+    () => Math.max(0, goalCalories - eatenCalories),
+    [goalCalories, eatenCalories]
+  );
 
   const smartSuggestionText = useMemo(() => {
     const eaten = dailyStats.data?.totalCalories ?? 0;
@@ -109,6 +119,8 @@ export function useChat() {
     sendMutation,
     messages,
     user: user.data,
+    eatenCalories,
+    goalCalories,
     remainingCalories,
     smartSuggestionText,
   };

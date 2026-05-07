@@ -18,6 +18,8 @@ export function Chat() {
     sendMutation,
     messages,
     user,
+    eatenCalories,
+    goalCalories,
     remainingCalories,
     smartSuggestionText,
   } = useChat();
@@ -170,12 +172,13 @@ export function Chat() {
       {/* Fixed input area above BottomNav */}
       <div className="fixed bottom-[73px] left-0 right-0 z-40 border-t border-slate-800 bg-slate-900/95 backdrop-blur-md">
         <div className="mx-auto max-w-lg px-4 py-3">
-          {isEmpty && (
-            <SmartSuggestionChip
-              onTap={() => handleSend(smartSuggestionText)}
-              isLoading={isLoading}
-            />
-          )}
+          <SmartSuggestionChip
+            onTap={() => handleSend(smartSuggestionText)}
+            isLoading={isLoading}
+            eaten={eatenCalories}
+            goal={goalCalories}
+            remaining={remainingCalories}
+          />
           <ChatInput
             value={inputValue}
             onChange={setInputValue}

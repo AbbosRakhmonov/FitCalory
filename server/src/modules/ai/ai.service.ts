@@ -151,6 +151,8 @@ Har doim o'zbek tilida, qisqa va aniq javob bering. Retsept bersangiz taxminiy k
   const model = genAI.getGenerativeModel({
     model: "gemini-2.5-flash",
     systemInstruction,
+    // Disable thinking for chat — faster responses, not needed for conversational replies
+    generationConfig: { thinkingConfig: { thinkingBudget: 0 } } as never,
   });
 
   const geminiHistory = history.map((msg) => ({
